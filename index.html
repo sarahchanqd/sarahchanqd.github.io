@@ -159,7 +159,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2020/08/24/hibernate%20bulk-id%E7%AD%96%E7%95%A5%E5%BA%94%E7%94%A8/" class="post-title-link" itemprop="url">Untitled</a>
+            <a href="/2020/08/24/hibernate%20bulk-id%E7%AD%96%E7%95%A5%E5%BA%94%E7%94%A8/" class="post-title-link" itemprop="url">hibernate bulk-id策略应用</a>
         </h2>
 
         <div class="post-meta">
@@ -176,7 +176,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-08-25 00:04:16" itemprop="dateModified" datetime="2020-08-25T00:04:16+08:00">2020-08-25</time>
+                <time title="Modified: 2020-08-25 00:23:23" itemprop="dateModified" datetime="2020-08-25T00:23:23+08:00">2020-08-25</time>
               </span>
 
           
@@ -190,8 +190,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>title: hibernate bulk-id策略应用</p>
-<h3 id="hibernate-bulk-id策略应用"><a href="#hibernate-bulk-id策略应用" class="headerlink" title="hibernate bulk-id策略应用"></a><strong>hibernate bulk-id策略应用</strong></h3><h4 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h4><p>​        近期有项目组提出在基于自主研发平台开发的系统上进行性能测试，用户登录接口响应时间逐渐变长的问题，经过排查，发现了用户管理模块的慢操作Sql，即使用的hibernate框架会在update用户表时，创建HT_[tablename]的临时表，用于保存要更新的所有用户ID。另外项目组使用的数据库Mysql，后续要开启GTID的复制模式，GTID的限制就是不允许在事务中（包括在函数和触发器的事务）创建、删除临时表。</p>
+          <h4 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h4><p>​        近期有项目组提出在基于自主研发平台开发的系统上进行性能测试，用户登录接口响应时间逐渐变长的问题，经过排查，发现了用户管理模块的慢操作Sql，即使用的hibernate框架会在update用户表时，创建HT_[tablename]的临时表，用于保存要更新的所有用户ID。另外项目组使用的数据库Mysql，后续要开启GTID的复制模式，GTID的限制就是不允许在事务中（包括在函数和触发器的事务）创建、删除临时表。</p>
 <h4 id="hibernate临时表使用场景"><a href="#hibernate临时表使用场景" class="headerlink" title="hibernate临时表使用场景"></a>hibernate临时表使用场景</h4><h5 id="Class-图"><a href="#Class-图" class="headerlink" title="Class 图"></a>Class 图</h5><p>考虑到我们有以下实体：</p>
 <p><img src="https://www.docs4dev.com/images/hibernate-orm/5.4/temp_table_class_diagram.jpg" alt="实体 class 图"></p>
 <p><code>Person</code>实体是此实体继承 model 的 base class，并按如下方式映射：</p>
