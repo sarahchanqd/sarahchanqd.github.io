@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"sarahchanqd.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="浅谈微服务平台之灰度发布什么是灰度发布​            在软件项目的迭代过程中，不可避免地需要发布版本，而每一次发布都意味着风险。在传统项目中，升级服务器端应用，需要将应用程序包上传到服务器，然后停掉老版本服务，再启动新版本服务。这种简单的发布方式存在两个风险，一是新版本升级过程中，服务是暂时中断的，二是如果新版本有BUG，升级失败，回滚起来也容易造成更长时间的服务不可用。 ​">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈微服务平台之灰度发布">
+<meta property="og:url" content="https://sarahchanqd.github.io/2020/08/25/%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83/index.html">
+<meta property="og:site_name" content="Sarah&#39;s Blog">
+<meta property="og:description" content="浅谈微服务平台之灰度发布什么是灰度发布​            在软件项目的迭代过程中，不可避免地需要发布版本，而每一次发布都意味着风险。在传统项目中，升级服务器端应用，需要将应用程序包上传到服务器，然后停掉老版本服务，再启动新版本服务。这种简单的发布方式存在两个风险，一是新版本升级过程中，服务是暂时中断的，二是如果新版本有BUG，升级失败，回滚起来也容易造成更长时间的服务不可用。 ​">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-08-25T10:04:18.592Z">
+<meta property="article:modified_time" content="2020-08-25T10:01:58.172Z">
+<meta property="article:author" content="Sarah Chan">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://sarahchanqd.github.io/2020/08/25/%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>浅谈微服务平台之灰度发布 | Sarah's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Sarah's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://sarahchanqd.github.io/2020/08/25/%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Sarah Chan">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sarah's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          浅谈微服务平台之灰度发布
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-08-25 18:04:18 / Modified: 18:01:58" itemprop="dateCreated datePublished" datetime="2020-08-25T18:04:18+08:00">2020-08-25</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="浅谈微服务平台之灰度发布"><a href="#浅谈微服务平台之灰度发布" class="headerlink" title="浅谈微服务平台之灰度发布"></a>浅谈微服务平台之灰度发布</h2><h3 id="什么是灰度发布"><a href="#什么是灰度发布" class="headerlink" title="什么是灰度发布"></a>什么是灰度发布</h3><p>​            在软件项目的迭代过程中，不可避免地需要发布版本，而每一次发布都意味着风险。在传统项目中，升级服务器端应用，需要将应用程序包上传到服务器，然后停掉老版本服务，再启动新版本服务。这种简单的发布方式存在两个风险，一是新版本升级过程中，服务是暂时中断的，二是如果新版本有BUG，升级失败，回滚起来也容易造成更长时间的服务不可用。</p>
+<p>​            为了控制版本发布带来的风险，人们研究出了多种发布策略，下面将目前常用的发布策略做一个总结。</p>
+<h4 id="蓝绿发布（Blue-Green-Deployment）"><a href="#蓝绿发布（Blue-Green-Deployment）" class="headerlink" title="蓝绿发布（Blue/Green Deployment）"></a>蓝绿发布（<strong>Blue/Green Deployment</strong>）</h4><h5 id="1、定义"><a href="#1、定义" class="headerlink" title="1、定义"></a>1、定义</h5><p>蓝绿部署，是指同时运行两个版本的应用，蓝绿部署的时候，并不停止老版本，而是直接部署一套新版本，等新版本运行起来测试通过后，再将流量切换到新版本上。但是蓝绿部署要求在升级过程中，同时运行两套程序，对硬件的要求就是日常所需的二倍，比如日常运行时，需要10台服务器支撑业务，那么使用蓝绿部署，你就需要购置二十台服务器。</p>
+<h5 id="2、特点"><a href="#2、特点" class="headerlink" title="2、特点"></a>2、特点</h5><p>蓝绿部署无需停机，新版本上线的过程中，没有修改老版本，这样风险很小。理论上只要老版本的资源不被删除，可以在任何时间回滚到老版本，而且用户无感知。</p>
+<p>但是当从绿色环境切换到蓝色环境时，需要妥当处理未完成的业务和新的业务。如果数据库后端无法处理，可能会有一些比较麻烦的问题：</p>
+<ul>
+<li>可能会出现需要同时处理“微服务架构应用”和“传统架构应用”的情况，如果在蓝绿部署中协调不好这两者，还是有可能会导致服务停止。</li>
+<li>需要提前考虑数据库与应用部署同步迁移 /回滚的问题。</li>
+<li>蓝绿部署需要有基础设施支持。</li>
+<li>在非隔离基础架构（ VM 、 Docker 等）上执行蓝绿部署，蓝色环境和绿色环境有被摧毁的风险。</li>
+</ul>
+<h4 id="滚动发布-Rolling-update"><a href="#滚动发布-Rolling-update" class="headerlink" title="滚动发布 (Rolling update)"></a>滚动发布 (<strong>Rolling update</strong>)</h4><h5 id="1、滚动发布定义"><a href="#1、滚动发布定义" class="headerlink" title="1、滚动发布定义"></a>1、滚动发布定义</h5><p>滚动发布，一般是取出一个或者多个服务器停止服务，执行更新，并重新将其投入使用。周而复始，直到集群中所有的实例都更新成新版本。</p>
+<h5 id="2、特点-1"><a href="#2、特点-1" class="headerlink" title="2、特点"></a>2、特点</h5><p>滚动发布能够解决掉蓝绿部署时对硬件要求增倍的问题。这种部署方式相对于蓝绿部署，更加节约资源——它不需要运行两个集群、两倍的实例数。我们可以部分部署，例如每次只取出集群的20%进行升级。</p>
+<p>滚动升级也有一些问题：</p>
+<ul>
+<li>在开始滚动升级后，流量会直接流向已经启动起来的新版本，但是这个时候，新版本是不一定可用的，比如需要进一步的测试才能确认。</li>
+<li>在滚动升级期间，整个系统就处于非常不稳定的状态，如果发现了问题，也比较难以确定是新版本还是老版本造成的问题，回滚很困难。</li>
+<li>在滚动升级期间，会短暂出现新老版本不一致的情况，如果对上线要求较高的场景，那么就需要考虑如何做好兼容的问题。</li>
+</ul>
+<h4 id="灰度发布"><a href="#灰度发布" class="headerlink" title="灰度发布"></a>灰度发布</h4><h5 id="1、定义-1"><a href="#1、定义-1" class="headerlink" title="1、定义"></a>1、定义</h5><p>灰度发布是指在黑与白之间，能够平滑过渡的一种发布方式。AB test就是一种灰度发布方式，让一部分用户继续用A，一部分用户开始用B，如果用户对B没有什么反对意见，那么逐步扩大范围，把所有用户都迁移到B上面来。灰度发布可以保证整体系统的稳定，在初始灰度的时候就可以发现、调整问题，以保证其影响度，而我们平常所说的金丝雀部署也就是灰度发布的一种方式。</p>
+<blockquote>
+<p><strong>注释：</strong>矿井中的金丝雀<br> 17世纪，英国矿井工人发现，金丝雀对瓦斯这种气体十分敏感。空气中哪怕有极其微量的瓦斯，金丝雀也会停止歌唱；而当瓦斯含量超过一定限度时，虽然鲁钝的人类毫无察觉，金丝雀却早已毒发身亡。当时在采矿设备相对简陋的条件下，工人们每次下井都会带上一只金丝雀作为“瓦斯检测指标”，以便在危险状况下紧急撤离。</p>
+</blockquote>
+<h5 id="2、特点-2"><a href="#2、特点-2" class="headerlink" title="2、特点"></a>2、特点</h5><ul>
+<li><p>在灰度发布开始后，先启动一个新版本应用，但是并不直接将流量切过来，而是测试人员对新版本进行线上测试，启动的这个新版本应用，就是我们的金丝雀。如果没有问题，那么可以将少量的用户流量导入到新版本上，然后再对新版本做运行状态观察，收集各种运行时数据，如果此时对新旧版本做各种数据对比，就是所谓的A/B测试。</p>
+</li>
+<li><p>当确认新版本运行良好后，再逐步将更多的流量导入到新版本上，在此期间，还可以不断地调整新旧两个版本的运行的服务器副本数量，以使得新版本能够承受越来越大的流量压力。直到将100%的流量都切换到新版本上，最后关闭剩下的老版本服务，完成灰度发布。</p>
+</li>
+<li><p>如果在灰度发布过程中（灰度期）发现了新版本有问题，就应该立即将流量切回老版本上，这样，就会将负面影响控制在最小范围内。</p>
+</li>
+</ul>
+<h3 id="Nexpion-Discovery介绍"><a href="#Nexpion-Discovery介绍" class="headerlink" title="Nexpion Discovery介绍"></a>Nexpion Discovery介绍</h3><p>由于灰度发布没有一个严格的标准，各灰度发布产品实现的功能也有所不同，在这里推荐一个开源的灰度发布框架-Nexpion Discovery，目前自主研发平台的灰度发布功能也基于此框架实现的。</p>
+<p>Discovery【探索】框架架构，基于Spring Cloud  Discovery服务注册发现、Ribbon负载均衡、Feign和RestTemplate调用等组件全方位增强的企业级微服务开源解决方案，更贴近企业级需求，更具有企业级的插件引入、开箱即用特征。</p>
+<ul>
+<li>支持阿里巴巴Nacos、Eureka、Consul和Zookeeper四个服务注册发现中心</li>
+<li>支持阿里巴巴Nacos、携程Apollo和Redis三个远程配置中心</li>
+<li>支持阿里巴巴Sentinel和Hystrix两个熔断限流降级权限中间件</li>
+<li>支持Uber Jaeger、Apache Skywalking两个符合OpenTracing规范的调用链中间件</li>
+<li>支持Prometheus Micrometer和Spring Boot Admin两个指标中间件</li>
+<li>支持Java Agent解决异步跨线程ThreadLocal上下文传递</li>
+<li>支持Spring Cloud Gateway、Zuul网关和微服务三大模块的灰度发布和路由等一系列功能</li>
+<li>支持和兼容Spring Cloud Edgware版、Finchley版、Greenwich版和Hoxton版</li>
+</ul>
+<p>其功能包括</p>
+<ul>
+<li>灰度发布。基于规则订阅的全链路灰度发布，包括切换发布（版本匹配发布、区域匹配发布）和平滑发布（版本权重发布、区域权重发布）</li>
+<li>灰度路由。基于Header传递的全链路灰度路由，包括切换路由（版本匹配路由、区域匹配路由、机器IP和端口匹配路由）和平滑路由（版本权重路由、区域权重路由）。可以在网关过滤器、前端界面、负载均衡策略类三个地方实现路由功能</li>
+<li>组合式灰度发布和路由，灰度发布和灰度路由的多种组合式规则和策略，前端灰度&amp;网关灰度路由组合式策略</li>
+<li>服务监控。包括调用链监控（Tracing）、日志监控（Logging）、指标监控（Metrics），CNCF技术委员会通过OpenTelemetry规范整合基于Tracing的OpenTracing规范（官方推荐Jaeger做Backend）和基于Metrics的OpenSensus规范（官方推荐Prometheus做Backend）。框架支持OpenTracing、Uber Jaeger、Apache Skywalking<ul>
+<li>调用链监控（Tracing）包括Header方式、调用链方式、日志方式等单个或者组合式的全链路灰度调用链，支持对Sentinel自动埋点。调用链方式不支持Edgware版（Spring Boot 1.x.x）</li>
+<li>指标监控（Metrics）包括Prometheus、Grafana、Spring Boot Admin</li>
+</ul>
+</li>
+<li>服务隔离。基于组和黑/白名单的全链路服务隔离，包括注册准入隔离（基于黑/白名单，包括组和IP地址的准入、最大注册数限制的准入）、消费端隔离（基于组的负载均衡的隔离、基于黑/白名单的IP地址的隔离）和提供端隔离（基于组的Header传值策略的隔离）</li>
+<li>环境隔离和路由。基于服务实例的元数据Metadata的env参数和全链路传递的环境Header值进行比对实现隔离，当从网关传递来的环境Header（n-d-env）值和提供端实例的元数据Metadata环境配置值相等才能调用。环境隔离下，调用端实例找不到符合条件的提供端实例，把流量路由到一个通用或者备份环境</li>
+<li>服务限流熔断降级权限。集成阿里巴巴Sentinel，有机整合灰度路由，扩展LimitApp的机制，通过动态的Http  Header方式实现组合式防护机制，包括基于服务名、基于灰度组、基于灰度版本、基于灰度区域、基于机器地址和端口等防护机制，支持自定义任意的业务参数组合实现该功能。支持原生的流控规则、降级规则、授权规则、系统规则、热点参数流控规则</li>
+<li>数据库灰度发布。基于多数据源的数据库灰度发布</li>
+<li>同城双活多机房切换。基于区域匹配发布或者路由的同城双活多机房切换</li>
+<li>灰度路由和发布的自动化测试。基于Spring Boot/Spring Cloud自动化测试，包括普通调用测试、灰度调用测试和扩展调用测试（可扩展出阿里巴巴Sentinel、FF4j功能开关等自动化测试）</li>
+<li>支持自定义和编程实现扩展<ul>
+<li>支持用户自定义和编程禁止注册、禁止被发现、禁止被负载均衡的策略</li>
+<li>支持用户自定义和编程灰度路由策略</li>
+<li>支持用户自定义和编程负载均衡策略类</li>
+<li>支持运维调度灰度发布和路由的元数据</li>
+<li>支持参数化灰度发布</li>
+</ul>
+</li>
+<li>Docker容器化和Kubernetes平台的无缝支持部署</li>
+</ul>
+<p>更多资料请参考：源码: <a href="htmlhttps://github.com/Nepxion/Discovery">Nexpion Discovery</a>    使用指南: <a target="_blank" rel="noopener" href="https://github.com/Nepxion/DiscoveryGuide">Nexpion DiscoveryGuide</a></p>
+<h3 id="灰度发布实践"><a href="#灰度发布实践" class="headerlink" title="灰度发布实践"></a>灰度发布实践</h3><p>自主研发平台是怎样实现的？</p>
+<p>1.引入依赖</p>
+<p>引入服务注册发现的中间件的增强插件，这里项目组使用的是consul：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.nepxion&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;discovery-plugin-starter-consul&lt;&#x2F;artifactId&gt;</span><br><span class="line">    &lt;version&gt;$&#123;discovery.version&#125;&lt;&#x2F;version&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<p>引入远程配置中心的中间件的扩展插件，项目组使用的是redis：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.nepxion&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;discovery-plugin-config-center-starter-redis&lt;&#x2F;artifactId&gt;</span><br><span class="line">    &lt;version&gt;$&#123;discovery.version&#125;&lt;&#x2F;version&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<p>策略功能引入，支持微服务端、网关Spring Cloud Gateway端，包括内置版本路由、区域路由、自定义和编程灰度路由</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">微服务端引入</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.nepxion&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;discovery-plugin-strategy-starter-service&lt;&#x2F;artifactId&gt;</span><br><span class="line">    &lt;version&gt;$&#123;discovery.version&#125;&lt;&#x2F;version&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">网关Spring Cloud Gateway端引入</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.nepxion&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;discovery-plugin-strategy-starter-gateway&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;$&#123;discovery.version&#125;&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<p>控制平台引入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">远程配置中心的中间件的扩展插件，如需要，请任选一个引入，或者也可以引入您自己的扩展</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.nepxion&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;discovery-console-starter-redis&lt;&#x2F;artifactId&gt;</span><br><span class="line">    &lt;version&gt;$&#123;discovery.version&#125;&lt;&#x2F;version&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<p>调用链功能引入，包含三大调用链，支持微服务端、网关Zuul端和网关Spring Cloud Gateway端</p>
+<p>注意：该模块支持F版或更高版本，且不能同时引入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">微服务端引入</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.nepxion&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;discovery-plugin-strategy-sentinel-starter-opentracing&lt;&#x2F;artifactId&gt;</span><br><span class="line">    &lt;artifactId&gt;discovery-plugin-strategy-sentinel-starter-skywalking&lt;&#x2F;artifactId&gt;</span><br><span class="line">    &lt;version&gt;$&#123;discovery.version&#125;&lt;&#x2F;version&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>2.配置文件</p>
+<p>在元数据MetaData中，为微服务定义一个所属组名（group）或者应用名（application）或者通过服务名前缀来自动产生服务组名，定义一个版本号（version）或者通过Git插件方式自动产生版本号，定义一个所属区域名（region），定义一个所属环境（env）。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Consul config for discovery</span></span><br><span class="line"><span class="comment"># 参考https://springcloud.cc/spring-cloud-consul.html - 元数据和Consul标签</span></span><br><span class="line"><span class="string">spring.cloud.consul.discovery.tags=group=xxx-service-group,version=1.0,region=dev,env=env1</span></span><br></pre></td></tr></table></figure>
+
+<p>根据项目实际情况，开启和关闭相关功能项或者属性值，达到最佳配置。参考<a target="_blank" rel="noopener" href="https://github.com/Nepxion/Discovery#%E5%8A%9F%E8%83%BD%E5%BC%80%E5%85%B3%E9%85%8D%E7%BD%AE">功能开关配置</a></p>
+<p>3.规则推送</p>
+<p>通过远程配置中心推送规则，这里项目组自研基于管理台的灰度发布界面，将规则同步存储在DB和Redis，通过Redis推送规则。</p>
+<p>规则配置支持xml和 json两种格式，目前使用的是json格式。</p>
+<p>4.自研平台的灰度发布实现</p>
+<p>Poin实现基于版本号的全链路灰度发布。应用启动时需指定版本号，并将其作为元数据加入服务注册中心，通过页面配置灰度策略或者默认策略来实现灰度发布、流量切换功能。</p>
+<p>平台基于Nepxion Discovery进行封装，实现灰度发布，支持不同的灰度路由策略。</p>
+<ol>
+<li>默认提供灰度策略：按照用户、机构维度进行灰度控制；</li>
+<li>提供配置服务灰度版本权重以及默认版本的管理台页面；</li>
+<li>支持平滑将灰度版本升级为正式版本；</li>
+<li>未配置任何策略时使用轮询方式，灰度策略优先级高于默认策略，默认策略只有在未配置灰度策略时生效，灰度用户或所属机构为灰，机构的用户使用灰度策略，其他用户或者无状态的请求使用默认策略，灰度配置不关注链路，只有请求到的微服务和配置的重合时，使用指定的版本。</li>
+</ol>
+<p>灰度发布时，主要涉及设置灰度规则和部署新版本这两个动作，这2个动作没有一定的先后次序。可以：</p>
+<p>部署新版本 -&gt; 设置流控规则：可能的问题是在灰度规则设置生效前，进入新版本应用实例的流量可能不是灰度的。</p>
+<p>设置流控规则 -&gt; 部署新版本：可能的问题是新版本未部署前，灰度流量会降级路由到非灰度环境，在第一批新版本实例在发布后，有受到全部灰度流量冲击的风险。</p>
+<h3 id="结束语"><a href="#结束语" class="headerlink" title="结束语"></a>结束语</h3><p>发布总是复杂的、有风险的，所以一个真实好用的灰度发布系统是十分复杂的，后面更需要一整套体系来支撑完善。本文意在让大家对灰度发布有一个初步的认识，希望有所帮助。</p>
+<p>参考文档：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/022685baba7d">https://www.jianshu.com/p/022685baba7d</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/42671353">https://zhuanlan.zhihu.com/p/42671353</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.sohu.com/a/312232985_671228">https://www.sohu.com/a/312232985_671228</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/24/hibernate%20bulk-id%E7%AD%96%E7%95%A5%E5%BA%94%E7%94%A8/" rel="prev" title="hibernate bulk-id策略应用">
+      <i class="fa fa-chevron-left"></i> hibernate bulk-id策略应用
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%85%E8%B0%88%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%B9%B3%E5%8F%B0%E4%B9%8B%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83"><span class="nav-number">1.</span> <span class="nav-text">浅谈微服务平台之灰度发布</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83"><span class="nav-number">1.1.</span> <span class="nav-text">什么是灰度发布</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%93%9D%E7%BB%BF%E5%8F%91%E5%B8%83%EF%BC%88Blue-Green-Deployment%EF%BC%89"><span class="nav-number">1.1.1.</span> <span class="nav-text">蓝绿发布（Blue&#x2F;Green Deployment）</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#1%E3%80%81%E5%AE%9A%E4%B9%89"><span class="nav-number">1.1.1.1.</span> <span class="nav-text">1、定义</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2%E3%80%81%E7%89%B9%E7%82%B9"><span class="nav-number">1.1.1.2.</span> <span class="nav-text">2、特点</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%BB%9A%E5%8A%A8%E5%8F%91%E5%B8%83-Rolling-update"><span class="nav-number">1.1.2.</span> <span class="nav-text">滚动发布 (Rolling update)</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#1%E3%80%81%E6%BB%9A%E5%8A%A8%E5%8F%91%E5%B8%83%E5%AE%9A%E4%B9%89"><span class="nav-number">1.1.2.1.</span> <span class="nav-text">1、滚动发布定义</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2%E3%80%81%E7%89%B9%E7%82%B9-1"><span class="nav-number">1.1.2.2.</span> <span class="nav-text">2、特点</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83"><span class="nav-number">1.1.3.</span> <span class="nav-text">灰度发布</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#1%E3%80%81%E5%AE%9A%E4%B9%89-1"><span class="nav-number">1.1.3.1.</span> <span class="nav-text">1、定义</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2%E3%80%81%E7%89%B9%E7%82%B9-2"><span class="nav-number">1.1.3.2.</span> <span class="nav-text">2、特点</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Nexpion-Discovery%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.2.</span> <span class="nav-text">Nexpion Discovery介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83%E5%AE%9E%E8%B7%B5"><span class="nav-number">1.3.</span> <span class="nav-text">灰度发布实践</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9D%9F%E8%AF%AD"><span class="nav-number">1.4.</span> <span class="nav-text">结束语</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Sarah Chan</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Sarah Chan</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
